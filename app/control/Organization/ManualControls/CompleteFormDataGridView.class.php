@@ -30,10 +30,14 @@ class CompleteFormDataGridView extends TPage
         // create the form fields
         $id     = new TEntry('id');
         $name   = new TEntry('name');
+        $quantidade   = new TEntry('quantidade');
+        $volume   = new TEntry('volume');
         
         // add the fields in the form
         $this->form->addFields( [new TLabel('ID')],    [$id] );
-        $this->form->addFields( [new TLabel('Name', 'red')],  [$name] );
+        $this->form->addFields( [new TLabel('Name', )],  [$name] );
+        $this->form->addFields( [new TLabel('quantidade', )],  [$quantidade] );
+        $this->form->addFields( [new TLabel('tamanho', )],  [$volume] );
         
         $name->addValidation('Name', new TRequiredValidator);
         
@@ -48,14 +52,20 @@ class CompleteFormDataGridView extends TPage
         $this->datagrid->width = '100%';
         
         // add the columns
-        $col_id    = new TDataGridColumn('id', 'Id', 'right', '10%');
-        $col_name  = new TDataGridColumn('name', 'Name', 'left', '90%');
+        $col_id    = new TDataGridColumn('id', 'Id', 'left', '-90%');
+        $col_name  = new TDataGridColumn('name', 'Name', 'center', '40%');
+        $col_quantidade  = new TDataGridColumn('quantidade', 'quantidade', 'center', '40%');
+        $col_volume  = new TDataGridColumn('tamanho', 'volume', 'center', '80%');
         
         $this->datagrid->addColumn($col_id);
         $this->datagrid->addColumn($col_name);
+        $this->datagrid->addColumn($col_quantidade);
+        $this->datagrid->addColumn($col_volume);
         
         $col_id->setAction( new TAction([$this, 'onReload']),   ['order' => 'id']);
         $col_name->setAction( new TAction([$this, 'onReload']), ['order' => 'name']);
+        $col_quantidade->setAction( new TAction([$this, 'onReload']), ['order' => 'quantidade']);
+        $col_volume->setAction( new TAction([$this, 'onReload']), ['order' => 'volume']);
         
         $action1 = new TDataGridAction([$this, 'onEdit'],   ['key' => '{id}'] );
         $action2 = new TDataGridAction([$this, 'onDelete'], ['key' => '{id}'] );
