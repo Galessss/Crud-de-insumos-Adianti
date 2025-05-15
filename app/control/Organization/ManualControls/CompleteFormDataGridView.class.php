@@ -1,4 +1,7 @@
 <?php
+
+use Adianti\Widget\Wrapper\TDBUniqueSearch;
+
 /**
  * CompleteFormDataGridView
  *
@@ -32,18 +35,27 @@ class CompleteFormDataGridView extends TPage
         $name   = new TEntry('name');
         $quantidade   = new TEntry('quantidade');
         $volume   = new TEntry('volume');
+        //$search = new TDBUniqueSearch('search', 'samples', 'Category', 'id', 'name');
+        
         
         // add the fields in the form
-        $this->form->addFields( [new TLabel('ID')],    [$id] );
+        $search = new TEntry('search');
+        $this->form->addFields([new TLabel('Buscar por Nome')], [$search]);
+        $search->setSize('40%');
+        
         $this->form->addFields( [new TLabel('Name', )],  [$name] );
+        $name->setSize('40%');
         $this->form->addFields( [new TLabel('quantidade', )],  [$quantidade] );
-        $this->form->addFields( [new TLabel('tamanho', )],  [$volume] );
+        $quantidade->setSize('40%');
+        $this->form->addFields( [new TLabel('volume', )],  [$volume] );
+        $volume->setSize('40%');
         
         $name->addValidation('Name', new TRequiredValidator);
         
         // define the form actions
-        $this->form->addAction( 'Save',  new TAction([$this, 'onSave']), 'fa:save green');
-        $this->form->addActionLink( 'Clear', new TAction([$this, 'onClear']), 'fa:eraser red');
+        $this->form->addAction( 'Salvar',  new TAction([$this, 'onSave']), 'fa:save green');
+        $this->form->addActionLink( 'Limpar', new TAction([$this, 'onClear']), 'fa:eraser red');
+        $this->form->addAction('Procurar', new TAction([$this, 'onSearch']), 'fa:search blue');
         
         // id not editable
         $id->setEditable(FALSE);
@@ -55,7 +67,7 @@ class CompleteFormDataGridView extends TPage
         $col_id    = new TDataGridColumn('id', 'Id', 'left', '-90%');
         $col_name  = new TDataGridColumn('name', 'Name', 'center', '40%');
         $col_quantidade  = new TDataGridColumn('quantidade', 'quantidade', 'center', '40%');
-        $col_volume  = new TDataGridColumn('tamanho', 'volume', 'center', '80%');
+        $col_volume  = new TDataGridColumn('volume', 'volume', 'center', '80%');
         
         $this->datagrid->addColumn($col_id);
         $this->datagrid->addColumn($col_name);
@@ -130,39 +142,41 @@ class CompleteFormDataGridView extends TPage
      * method onSave()
      * Executed whenever the user clicks at the save button
      */
-    function onSave()
+function onSave()
+{
+    try
     {
-        try
-        {
-            // open a transaction with database 'samples'
-            TTransaction::open('samples');
-            
-            $this->form->validate(); // run form validation
-            
-            // get the form data into an active record Category
-            $category = $this->form->getData('Category');
-            
-            // stores the object
-            $category->store();
-            
-            // close the transaction
-            TTransaction::close();
-            
-            // shows the success message
-            new TMessage('info', 'Record saved');
-            
-            // reload the listing
-            $this->onReload();
-        }
-        catch (Exception $e) // in case of exception
-        {
-            // shows the exception error message
-            new TMessage('error', $e->getMessage());
-            
-            // undo all pending operations
-            TTransaction::rollback();
-        }
+        TTransaction::open('samples');
+        
+        $this->form->validate();
+
+        
+        $data = $this->form->getData();
+
+        // Cria manualmente o objeto Category
+        $category = new Category;
+        $category->id = $data->id;
+        $category->name = $data->name;
+        $category->quantidade = $data->quantidade;
+        $category->volume = $data->volume;
+
+        // Salva no banco
+        $category->store();
+
+        // Fecha a transação
+        TTransaction::close();
+
+        new TMessage('info', 'Registro salvo com sucesso');
+
+        $this->onReload();
     }
+    catch (Exception $e)
+    {
+        new TMessage('error', $e->getMessage());
+        TTransaction::rollback();
+    }
+}
+
     
     /**
      * Clear form
@@ -277,4 +291,49 @@ class CompleteFormDataGridView extends TPage
         }
         parent::show();
     }
+    
+    
+    
+    public function onSearch($param = null)
+{
+    try
+    {
+      
+        TTransaction::open('samples');
+        
+        $data = $this->form->getData();
+        
+        // cria critério de busca
+        $criteria = new TCriteria();
+        
+        if (!empty($data->search)) {
+            $criteria->add(new TFilter('name', 'like', "%{$data->search}%"));
+        }
+        
+        $repository = new TRepository('Category');
+        $categories = $repository->load($criteria);
+        
+        $this->datagrid->clear();
+        
+        if ($categories)
+        {
+            foreach ($categories as $category)
+            {
+                $this->datagrid->addItem($category);
+            }
+        }
+        
+        // mantém os dados preenchidos no formulário
+        $this->form->setData($data);
+        
+        TTransaction::close();
+        
+        $this->loaded = true;
+    }
+    catch (Exception $e)
+    {
+        new TMessage('error', $e->getMessage());
+        TTransaction::rollback();
+    }
+}
 }
