@@ -4,7 +4,7 @@ return [
         'timezone' => 'America/Sao_Paulo',
         'language' => 'pt',
         'application' => 'sample',
-        'title' => 'Adianti Framework 8.1',
+        'title' => 'Orceu',
         'theme' => 'adminbs5',
         'debug' => '1',
         'strict_request' => '0'
