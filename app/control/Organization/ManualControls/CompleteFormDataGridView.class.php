@@ -35,11 +35,13 @@ class CompleteFormDataGridView extends TPage
         $name   = new TEntry('name');
         $quantidade   = new TEntry('quantidade');
         $volume   = new TEntry('volume');
+        $search = new TEntry('search');
         //$search = new TDBUniqueSearch('search', 'samples', 'Category', 'id', 'name');
         
         
         // add the fields in the form
-        $search = new TEntry('search');
+        $this->form->addFields([new TLabel('id')], [$id]);
+        $id->setSize('40%');
         $this->form->addFields([new TLabel('Buscar por Nome')], [$search]);
         $search->setSize('40%');
         
@@ -148,17 +150,23 @@ function onSave()
     {
         TTransaction::open('samples');
         
+        // Validação do formulário
         $this->form->validate();
 
-        
+        // Obtém os dados do formulário
         $data = $this->form->getData();
 
         // Cria manualmente o objeto Category
         $category = new Category;
-        $category->id = $data->id;
-        $category->name = $data->name;
+
+        // Define os campos (com verificação da existência do ID)
+        if (property_exists($data, 'id') && $data->id) {
+            $category->id = $data->id;
+        }
+
+        $category->name       = $data->name;
         $category->quantidade = $data->quantidade;
-        $category->volume = $data->volume;
+        $category->volume     = $data->volume;
 
         // Salva no banco
         $category->store();
@@ -168,6 +176,7 @@ function onSave()
 
         new TMessage('info', 'Registro salvo com sucesso');
 
+        // Recarrega os dados (provavelmente a grid)
         $this->onReload();
     }
     catch (Exception $e)
@@ -191,41 +200,38 @@ function onSave()
      * Executed whenever the user clicks at the edit button
      */
     function onEdit($param)
+{
+    try
     {
-        try
+        if (isset($param['id']) && $param['id'])
         {
-            if (isset($param['id']))
-            {
-                // get the parameter e exibe mensagem
-                $key = $param['id'];
-                
-                // open a transaction with database 'samples'
-                TTransaction::open('samples');
-                
-                // instantiates object Category
-                $category = new Category($key);
-                
-                // lança os data do category no form
-                $this->form->setData($category);
-                
-                // close the transaction
-                TTransaction::close();
-                $this->onReload();
-            }
-            else
-            {
-                $this->form->clear( true );
-            }
-        }
-        catch (Exception $e) // in case of exception
-        {
-            // shows the exception error message
-            new TMessage('error', $e->getMessage());
             
-            // undo all pending operations
-            TTransaction::rollback();
+            TTransaction::open('samples');
+
+           
+            $category = new Category($param['id']);
+
+           
+            $this->form->setData($category);
+
+           
+            TTransaction::close();
         }
+        else
+        {
+            
+            $this->form->clear(true);
+        }
+
+       
+        $this->onReload();
     }
+    catch (Exception $e)
+    {
+        new TMessage('error', $e->getMessage());
+        TTransaction::rollback();
+    }
+}
     
     /**
      * method onDelete()
@@ -250,19 +256,19 @@ function onSave()
     {
         try
         {
-            // get the parameter $key
+            
             $key = $param['id'];
             
-            // open a transaction with database 'samples'
+           
             TTransaction::open('samples');
             
-            // instantiates object Category
+            
             $category = new Category($key);
             
-            // deletes the object from the database
+           
             $category->delete();
             
-            // close the transaction
+           
             TTransaction::close();
             
             $pos_action = new TAction([__CLASS__, 'onReload']);
@@ -303,7 +309,7 @@ function onSave()
         
         $data = $this->form->getData();
         
-        // cria critério de busca
+       
         $criteria = new TCriteria();
         
         if (!empty($data->search)) {
@@ -336,4 +342,5 @@ function onSave()
         TTransaction::rollback();
     }
 }
+
 }
